@@ -1,0 +1,142 @@
+#define BUZZER 10
+#define LED 8
+#define BOTON1 11
+#define BOTON2 12
+#define CADENA_MAXIMA 26
+#define MAX_CARACTERES 100
+#define MAX_LONGITUD_MORSE 5
+
+#include <Adafruit_LiquidCrystal.h>
+int seconds = 0;
+
+Adafruit_LiquidCrystal lcd_1(0);
+
+void setup(){
+  pinMode(BUZZER, OUTPUT);
+  pinMode(LED, OUTPUT);
+  pinMode(BOTON1, INPUT);
+  pinMode(BOTON2, INPUT);
+  Serial.begin(9600);
+  lcd_1.begin(16, 2);
+}
+
+//---------------------------------------------------------
+//VARIABLES
+
+unsigned long tiempo_ini = 0;
+unsigned long tiempo_ini2 = 0;
+unsigned long tiempo_final = 0;
+unsigned long tiempo_final2 = 0;
+char caracteres[MAX_CARACTERES]; // Array para almacenar los caracteres
+int indice = 0;
+char letra;
+int borrar=0;
+
+//CREAMOS DICCIONARIO CON LAS LETRAS
+struct CODIGO_MORSE {
+    char morse[MAX_LONGITUD_MORSE];
+    char clave;
+};
+  
+struct CODIGO_MORSE diccionario[CADENA_MAXIMA] = {
+    {".-", 'A'}, 
+    {"-...", 'B'}, 
+    {"-.-.", 'C'}, 
+    {"-..", 'D'}, 
+    {".", 'E'},
+    {"..-.", 'F'}, 
+    {"--.", 'G'}, 
+    {"....", 'H'}, 
+    {"..", 'I'}, 
+    {".---", 'J'},
+    {"-.-", 'K'}, 
+    {".-..", 'L'}, 
+    {"--", 'M'}, 
+    {"-.", 'N'}, 
+    {"---", 'O'},
+    {".--.", 'P'}, 
+    {"--.-", 'Q'}, 
+    {".-.", 'R'}, 
+    {"...", 'S'}, 
+    {"-", 'T'},
+    {"..-", 'U'}, 
+    {"...-", 'V'}, 
+    {".--", 'W'}, 
+    {"-..-", 'X'}, 
+    {"-.--", 'Y'},
+    {"--..", 'Z'}
+};
+
+char buscarLetra(char *codigoMorse) {
+  for (int i = 0; i < CADENA_MAXIMA; i++) {
+    if (strcmp(diccionario[i].morse, codigoMorse) == 0) {
+      return diccionario[i].clave;
+    }
+  }
+  return '?'; // Retornar '?' si no se encuentra el código Morse
+}
+//-----------------------------------------------------------
+//CODIGO
+
+void loop(){
+  
+  // Si el botón está presionado y es la primera vez
+  if (digitalRead(BOTON1) == HIGH && tiempo_ini == 0) {
+    tiempo_ini = millis();
+    digitalWrite(LED, HIGH);
+    digitalWrite(BUZZER, HIGH);
+  }
+  // Si el botón ya no está presionado y ya se presionó antes
+  if (digitalRead(BOTON1) == LOW && tiempo_ini != 0) 
+  {
+    tiempo_final = millis(); // Guardar el tiempo final
+    unsigned long tiempo_pulsado = tiempo_final - tiempo_ini; // Calcular el tiempo pulsado
+  
+  
+  // Determinar si es un punto o una raya y almacenarlo en el array
+    if (tiempo_pulsado > 0 && tiempo_pulsado < 200) 
+    {
+      caracteres[indice] = '.';
+      indice++;
+      Serial.println(caracteres);
+    } else 
+    {
+      caracteres[indice] = '-';
+      indice++;
+      Serial.println(caracteres);
+    }
+    tiempo_ini = 0; // Reiniciar el tiempo inicial
+    digitalWrite(LED, LOW); //Establece un nuevo valor para la variable
+    digitalWrite(BUZZER, LOW); //Establece un nuevo valor para la variable
+
+  }
+
+//--------------------------------------------------------------
+// BOTON2
+// Verificar si se presionó el botón de finalización
+   if (digitalRead(BOTON2) == HIGH && tiempo_ini2 == 0) {
+     tiempo_ini2 = millis();
+   }
+  if (digitalRead(BOTON2) == LOW && tiempo_ini2 != 0) 
+  {
+    borrar=indice+1;
+    tiempo_final2 = millis(); // Guardar el tiempo final2
+    unsigned long tiempo_pulsado2 = tiempo_final2 - tiempo_ini2;
+  
+    if (tiempo_pulsado2 > 0 && tiempo_pulsado2 < 400){
+    
+    caracteres[indice] = '\0'; // Terminar la cadena con null
+    letra = buscarLetra(caracteres); // Buscar la letra correspondiente
+    Serial.println(letra);
+    lcd_1.print(letra);
+    tiempo_ini2 = 0;// Reiniciar el tiempo inicial 2
+    indice=0;
+    }else{
+    lcd_1.clear();
+    tiempo_ini2 = 0;
+    indice =0;
+    }
+
+    for(int b=0;b<borrar;b++){caracteres[b]=0;}
+  }
+}
